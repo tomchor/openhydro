@@ -72,7 +72,7 @@ end
 
 set!(model, u = (x, z) -> u(x, z, 0), w = (x, z) -> w(x, z, 0), b = (x, z) -> b(x, z, 0))
 
-simulation = Simulation(model, Δt = 0.1, stop_time = 200)
+simulation = Simulation(model, Δt = 0.1, stop_time = 100)
 
 simulation.output_writers[:velocities] = JLD2OutputWriter(model, 
                                                           merge(model.velocities, model.tracers),
@@ -112,7 +112,7 @@ hm = heatmap!(ax, xf./h, zc./h, u_plt, colorrange = w₀ * π / (k * h).*(-1, 1)
 hm2 = heatmap!(ax2, xc./h, zf./h, w_plt, colorrange = w₀.*(-1, 1), colormap = Reverse(:roma))
 hm3 = heatmap!(ax3, xc./h, zc./h, b_plt, colorrange = N² * w₀ / ω.*(-1, 1), colormap = Reverse(:roma))
 
-videoname = hydrostatic ? "hydro_internal_wave.mp4" : "internal_wave.mp4"
+videoname = hydrostatic ? "internal_wave_hydro.mp4" : "internal_wave_nonhydro.mp4"
 record(fig, videoname, 1:length(u_ts.times); framerate = 20) do i; 
     n[] = i
 end
