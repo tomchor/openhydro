@@ -7,6 +7,7 @@ h = 10
 k = π/h
 
 λ = 2π / k
+hydrostatic = true
 
 grid = RectilinearGrid(topology = (Bounded, Flat, Bounded), size = (256, 128), extent = (3*λ, h))
 
@@ -52,22 +53,32 @@ u_forcing = Relaxation(; rate = cᵣ / sponge_thickness, mask, target = u)
 w_forcing = Relaxation(; rate = cᵣ / sponge_thickness, mask, target = w)
 b_forcing = Relaxation(; rate = cᵣ / sponge_thickness, mask, target = b)
 
-model = NonhydrostaticModel(; grid, 
-                              forcing = (; u = u_forcing, w = w_forcing, b = b_forcing),
-                              boundary_conditions = (; u = u_boundaries, w = w_boundaries, b = b_boundaries),
-                              advection = WENO(; order = 3),
-                              buoyancy = BuoyancyTracer(),
-                              tracers = :b)
+if hydrostatic
+    model = HydrostaticFreeSurfaceModel(; grid, 
+                                        forcing = (; u = u_forcing, b = b_forcing),
+                                        #boundary_conditions = (; u = u_boundaries, b = b_boundaries),
+                                        boundary_conditions = (; u = u_boundaries,),
+                                        momentum_advection = WENO(; order = 3),
+                                        buoyancy = BuoyancyTracer(),
+                                        tracers = :b)
+else
+    model = NonhydrostaticModel(; grid, 
+                                  forcing = (; u = u_forcing, w = w_forcing, b = b_forcing),
+                                  boundary_conditions = (; u = u_boundaries, w = w_boundaries, b = b_boundaries),
+                                  advection = WENO(; order = 3),
+                                  buoyancy = BuoyancyTracer(),
+                                  tracers = :b)
+end
 
 set!(model, u = (x, z) -> u(x, z, 0), w = (x, z) -> w(x, z, 0), b = (x, z) -> b(x, z, 0))
 
-simulation = Simulation(model, Δt = 0.1, stop_time = 400)
+simulation = Simulation(model, Δt = 0.1, stop_time = 200)
 
 simulation.output_writers[:velocities] = JLD2OutputWriter(model, 
                                                           merge(model.velocities, model.tracers),
                                                           filename = "internal_wave.jld2", 
                                                           schedule = TimeInterval(0.5), 
-                                                          overwrite_existing=true)
+                                                          overwrite_existing = true)
 
 prog(sim) = @info prettytime(time(sim))*" with Δt = "*prettytime(sim.Δt)
 
@@ -101,6 +112,7 @@ hm = heatmap!(ax, xf./h, zc./h, u_plt, colorrange = w₀ * π / (k * h).*(-1, 1)
 hm2 = heatmap!(ax2, xc./h, zf./h, w_plt, colorrange = w₀.*(-1, 1), colormap = Reverse(:roma))
 hm3 = heatmap!(ax3, xc./h, zc./h, b_plt, colorrange = N² * w₀ / ω.*(-1, 1), colormap = Reverse(:roma))
 
-record(fig, "internal_wave.mp4", 1:length(u_ts.times); framerate = 20) do i; 
+videoname = hydrostatic ? "hydro_internal_wave.mp4" : "internal_wave.mp4"
+record(fig, videoname, 1:length(u_ts.times); framerate = 20) do i; 
     n[] = i
 end
