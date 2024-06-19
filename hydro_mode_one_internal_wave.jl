@@ -7,7 +7,7 @@ h = 10
 k = π/h
 
 λ = 2π / k
-hydrostatic = true
+hydrostatic = false
 
 grid = RectilinearGrid(topology = (Bounded, Flat, Bounded), size = (256, 128), extent = (3*λ, h))
 
@@ -25,7 +25,7 @@ w(x, z, t) = w₀ * sin(π * z / h) * sin(k * x - ω * t)
 
 b(x, z, t) = - N² * w₀ / ω * sin(π * z / h) * cos(k * x - ω * t) + N² * z
 
-@inline u_east(z, t) = u(xf[grid.Nx], z, t)
+@inline u_east(z, t) = u(grid.Lx, z, t)
 @inline u_west(z, t) = u(0, z, t)
 
 @inline w_east(z, t) = w(xc[grid.Nx], z, t)
@@ -55,24 +55,26 @@ b_forcing = Relaxation(; rate = cᵣ / sponge_thickness, mask, target = b)
 
 if hydrostatic
     model = HydrostaticFreeSurfaceModel(; grid, 
-                                        forcing = (; u = u_forcing, b = b_forcing),
-                                        #boundary_conditions = (; u = u_boundaries, b = b_boundaries),
-                                        boundary_conditions = (; u = u_boundaries,),
+                                        #forcing = (; u = u_forcing, b = b_forcing),
+                                        boundary_conditions = (; u = u_boundaries, b = b_boundaries),
                                         momentum_advection = WENO(; order = 3),
+                                        tracer_advection = WENO(; order = 3),
                                         buoyancy = BuoyancyTracer(),
                                         tracers = :b)
+    set!(model, u = (x, z) -> u(x, z, 0), b = (x, z) -> b(x, z, 0))
+
 else
     model = NonhydrostaticModel(; grid, 
-                                  forcing = (; u = u_forcing, w = w_forcing, b = b_forcing),
-                                  boundary_conditions = (; u = u_boundaries, w = w_boundaries, b = b_boundaries),
-                                  advection = WENO(; order = 3),
-                                  buoyancy = BuoyancyTracer(),
-                                  tracers = :b)
+                                #forcing = (; u = u_forcing, w = w_forcing, b = b_forcing),
+                                boundary_conditions = (; u = u_boundaries, w = w_boundaries, b = b_boundaries),
+                                advection = WENO(; order = 3),
+                                buoyancy = BuoyancyTracer(),
+                                tracers = :b)
+    set!(model, u = (x, z) -> u(x, z, 0), w = (x, z) -> w(x, z, 0), b = (x, z) -> b(x, z, 0))
 end
 
-set!(model, u = (x, z) -> u(x, z, 0), w = (x, z) -> w(x, z, 0), b = (x, z) -> b(x, z, 0))
 
-simulation = Simulation(model, Δt = 0.1, stop_time = 100)
+simulation = Simulation(model, Δt = 0.5*(minimum_xspacing(grid) / cₚ), stop_time = 100)
 
 simulation.output_writers[:velocities] = JLD2OutputWriter(model, 
                                                           merge(model.velocities, model.tracers),
