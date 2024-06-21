@@ -7,7 +7,8 @@ h = 10
 k = π/h
 
 λ = 2π / k
-hydrostatic = false
+hydrostatic = true
+forcing = true
 
 grid = RectilinearGrid(topology = (Bounded, Flat, Bounded), size = (256, 128), extent = (3*λ, h))
 
@@ -55,7 +56,7 @@ b_forcing = Relaxation(; rate = cᵣ / sponge_thickness, mask, target = b)
 
 if hydrostatic
     model = HydrostaticFreeSurfaceModel(; grid, 
-                                        #forcing = (; u = u_forcing, b = b_forcing),
+                                        forcing = forcing ? (; u = u_forcing, b = b_forcing) : NamedTuple(),
                                         boundary_conditions = (; u = u_boundaries, b = b_boundaries),
                                         momentum_advection = WENO(; order = 3),
                                         tracer_advection = WENO(; order = 3),
@@ -65,7 +66,7 @@ if hydrostatic
 
 else
     model = NonhydrostaticModel(; grid, 
-                                #forcing = (; u = u_forcing, w = w_forcing, b = b_forcing),
+                                forcing = forcing ? (; u = u_forcing, w = w_forcing, b = b_forcing) : NamedTuple(),
                                 boundary_conditions = (; u = u_boundaries, w = w_boundaries, b = b_boundaries),
                                 advection = WENO(; order = 3),
                                 buoyancy = BuoyancyTracer(),
@@ -73,12 +74,13 @@ else
     set!(model, u = (x, z) -> u(x, z, 0), w = (x, z) -> w(x, z, 0), b = (x, z) -> b(x, z, 0))
 end
 
-
 simulation = Simulation(model, Δt = 0.5*(minimum_xspacing(grid) / cₚ), stop_time = 100)
+
+simname = "internal_wave_$(hydrostatic ? "hydro" : "nonhdyro")_$(forcing ? "forcing" : "noforcing" )"
 
 simulation.output_writers[:velocities] = JLD2OutputWriter(model, 
                                                           merge(model.velocities, model.tracers),
-                                                          filename = "internal_wave.jld2", 
+                                                          filename = simname * ".jld2", 
                                                           schedule = TimeInterval(0.5), 
                                                           overwrite_existing = true)
 
@@ -96,9 +98,9 @@ fig = Figure();
 
 n = Observable(1)
 
-u_ts = FieldTimeSeries("internal_wave.jld2", "u");
-w_ts = FieldTimeSeries("internal_wave.jld2", "w");
-b_ts = FieldTimeSeries("internal_wave.jld2", "b");
+u_ts = FieldTimeSeries(simname * ".jld2", "u");
+w_ts = FieldTimeSeries(simname * ".jld2", "w");
+b_ts = FieldTimeSeries(simname * ".jld2", "b");
 
 u_plt = @lift interior(u_ts[$n], :, 1, :)
 w_plt = @lift interior(w_ts[$n], :, 1, :)
@@ -114,7 +116,6 @@ hm = heatmap!(ax, xf./h, zc./h, u_plt, colorrange = w₀ * π / (k * h).*(-1, 1)
 hm2 = heatmap!(ax2, xc./h, zf./h, w_plt, colorrange = w₀.*(-1, 1), colormap = Reverse(:roma))
 hm3 = heatmap!(ax3, xc./h, zc./h, b_plt, colorrange = N² * w₀ / ω.*(-1, 1), colormap = Reverse(:roma))
 
-videoname = hydrostatic ? "internal_wave_hydro.mp4" : "internal_wave_nonhydro.mp4"
-record(fig, videoname, 1:length(u_ts.times); framerate = 20) do i; 
+record(fig, simname * ".mp4", 1:length(u_ts.times); framerate = 20) do i; 
     n[] = i
 end
