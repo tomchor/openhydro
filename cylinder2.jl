@@ -1,6 +1,6 @@
 using Oceananigans, CairoMakie
 using Oceananigans.BoundaryConditions: FlatExtrapolationOpenBoundaryCondition
-include("custom_boundary_matching_scheme.jl")
+include("first_order_radiation_open_boundary_scheme.jl")
 
 @kwdef struct Cylinder{FT}
     D :: FT = 1.
@@ -37,7 +37,8 @@ grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size 
 
 @inline u∞(y, t, U) = U * (1 + 0.01 * randn())
 
-u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1),
+#u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1),
+u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiation2OpenBoundaryCondition(U, relaxation_timescale=1),
 #u_boundaries = FieldBoundaryConditions(east = OpenBoundaryCondition(U),
 #u_boundaries = FieldBoundaryConditions(east = FlatExtrapolationOpenBoundaryCondition(U),
                                        west = OpenBoundaryCondition(u∞, parameters = U))

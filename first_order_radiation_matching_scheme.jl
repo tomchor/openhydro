@@ -10,12 +10,11 @@ FOROBC = BoundaryCondition{<:Open{<:FirstOrderRadiation}}
 
 function FirstOrderRadiationOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, kwargs...)
     classification = Open(FirstOrderRadiation(relaxation_timescale))
-    
     return BoundaryCondition(classification, val; kwargs...)
 end
 
 @inline function relax(l, m, c, bc, grid, clock, model_fields)
-    Δt = clock.last_stage_Δt 
+    Δt = clock.last_stage_Δt
     τ = bc.classification.matching_scheme.relaxation_timescale
 
     Δt̄ = min(1, Δt / τ)
@@ -48,7 +47,7 @@ end
 @inline function _fill_south_open_halo!(i, k, grid, c, bc::FOROBC, loc, clock, model_fields)
     gradient_free_c = @inbounds model_fields.v⁻¹[i, 2, k]
     @inbounds c[i, 1, k] = relax(i, k, gradient_free_c, bc, grid, clock, model_fields)
-    
+
     return nothing
 end
 
