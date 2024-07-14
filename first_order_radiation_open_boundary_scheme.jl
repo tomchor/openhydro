@@ -2,15 +2,16 @@ using Oceananigans.Grids: xspacing, yspacing, zspacing
 using Oceananigans.BoundaryConditions: Open, getbc
 import Oceananigans.BoundaryConditions: _fill_west_open_halo!, _fill_east_open_halo!, _fill_south_open_halo!, _fill_north_open_halo!, _fill_bottom_open_halo!, _fill_north_open_halo!
 
-struct FirstOrderRadiation{FT}
+mutable struct FirstOrderRadiation{FT}
     relaxation_timescale :: FT
+    c⁻¹
 end
 
 FOROBC = BoundaryCondition{<:Open{<:FirstOrderRadiation}}
 
-function FirstOrderRadiationOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, kwargs...)
-    classification = Open(FirstOrderRadiation(relaxation_timescale))
-    return BoundaryCondition(classification, val; kwargs...)
+function FirstOrderRadiationOpenBoundaryCondition(c₁, val = nothing; relaxation_timescale = Inf, kwargs...)
+    classification = Open(FirstOrderRadiation(relaxation_timescale, c₁))
+    return BoundaryCondition(classification, c₁; kwargs...)
 end
 
 @inline function relax(l, m, c, bc, grid, clock, model_fields)
