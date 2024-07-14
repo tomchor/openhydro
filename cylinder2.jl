@@ -37,8 +37,9 @@ grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size 
 
 @inline u∞(y, t, U) = U * (1 + 0.01 * randn())
 
-u_boundaries = FieldBoundaryConditions(east = FlatExtrapolation2OpenBoundaryCondition(U, relaxation_timescale=1),
+u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1),
 #u_boundaries = FieldBoundaryConditions(east = OpenBoundaryCondition(U),
+#u_boundaries = FieldBoundaryConditions(east = FlatExtrapolationOpenBoundaryCondition(U),
                                        west = OpenBoundaryCondition(u∞, parameters = U))
 
 v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
@@ -73,8 +74,8 @@ progress(sim) = @info "$(time(sim)) with Δt = $(prettytime(sim.Δt)) in $(prett
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 
 function update_aux_fields!(sim)
-    sim.model.auxiliary_fields.u⁻¹ = sim.model.velocities.u
-    sim.model.auxiliary_fields.v⁻¹ = sim.model.velocities.v
+    sim.model.auxiliary_fields.u⁻¹ .= sim.model.velocities.u
+    sim.model.auxiliary_fields.v⁻¹ .= sim.model.velocities.v
 end
 simulation.callbacks[:update] = Callback(update_aux_fields!, IterationInterval(1))
 
