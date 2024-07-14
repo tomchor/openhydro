@@ -37,7 +37,8 @@ grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size 
 
 @inline u∞(y, t, U) = U * (1 + 0.01 * randn())
 
-u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1),
+u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(Field{Nothing, Center, Center}(grid),
+                                                                                       U, relaxation_timescale=1),
 #u_boundaries = FieldBoundaryConditions(east = OpenBoundaryCondition(U),
 #u_boundaries = FieldBoundaryConditions(east = FlatExtrapolationOpenBoundaryCondition(U),
                                        west = OpenBoundaryCondition(u∞, parameters = U))
