@@ -1,6 +1,7 @@
 using Oceananigans, CairoMakie
 using Oceananigans.BoundaryConditions: FlatExtrapolationOpenBoundaryCondition
 include("first_order_radiation_open_boundary_scheme.jl")
+include("second_order_radiation_open_boundary_scheme.jl")
 
 @kwdef struct Cylinder{FT}
     D :: FT = 1.
@@ -37,7 +38,7 @@ grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size 
 
 @inline u∞(y, t, U) = U * (1 + 0.01 * randn())
 
-u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1),
+u_boundaries = FieldBoundaryConditions(east = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1),
 #u_boundaries = FieldBoundaryConditions(east = OpenBoundaryCondition(U),
 #u_boundaries = FieldBoundaryConditions(east = FlatExtrapolationOpenBoundaryCondition(U),
                                        west = OpenBoundaryCondition(u∞, parameters = U))
@@ -54,8 +55,8 @@ model = NonhydrostaticModel(; grid,
                               closure, 
                               forcing = (u = u_forcing, v = v_forcing),
                               auxiliary_fields = (u⁻¹ = Field{Face, Center, Center}(grid),
-                                                  v⁻¹ = Field{Center, Face, Center}(grid),
-                                                  η⁻¹ = Field{Center, Center, Nothing}(grid)),
+                                                  u⁻² = Field{Face, Center, Center}(grid),
+                                                  ),
                               boundary_conditions = (u = u_boundaries, v = v_boundaries))
 
 @info "Constructed model"
@@ -74,9 +75,10 @@ progress(sim) = @info "$(time(sim)) with Δt = $(prettytime(sim.Δt)) in $(prett
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 
 function update_aux_fields!(sim)
+    sim.model.auxiliary_fields.u⁻² .= sim.model.auxiliary_fields.u⁻¹
     sim.model.auxiliary_fields.u⁻¹ .= sim.model.velocities.u
-    sim.model.auxiliary_fields.v⁻¹ .= sim.model.velocities.v
 end
+update_aux_fields!(simulation); update_aux_fields!(simulation);
 simulation.callbacks[:update] = Callback(update_aux_fields!, IterationInterval(1))
 
 u, v, w = model.velocities
