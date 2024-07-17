@@ -1,6 +1,5 @@
 using Oceananigans, CairoMakie
 using Oceananigans.BoundaryConditions: FlatExtrapolationOpenBoundaryCondition
-include("first_order_radiation_open_boundary_scheme.jl")
 include("second_order_radiation_open_boundary_scheme.jl")
 
 @kwdef struct Cylinder{FT}
@@ -39,10 +38,9 @@ grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size 
 @inline u∞(y, t, U) = U * (1 + 0.01 * randn())
 
 c⁻¹ = Field{Nothing, Center, Center}(grid)
+c⁻² = Field{Nothing, Center, Center}(grid)
 
-u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹=c⁻¹),
-#u_boundaries = FieldBoundaryConditions(east = OpenBoundaryCondition(U),
-#u_boundaries = FieldBoundaryConditions(east = FlatExtrapolationOpenBoundaryCondition(U),
+u_boundaries = FieldBoundaryConditions(east = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹, c⁻²),
                                        west = OpenBoundaryCondition(u∞, parameters = U))
 
 v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
@@ -76,19 +74,20 @@ simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(100))
 progress(sim) = @info "$(time(sim)) with Δt = $(prettytime(sim.Δt)) in $(prettytime(sim.run_wall_time))"
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 
-update_first_order_radiation_matching_scheme!(simulation)
-simulation.callbacks[:update] = Callback(update_first_order_radiation_matching_scheme!, IterationInterval(1))
-#function update_aux_fields!(sim)
-#    sim.model.auxiliary_fields.u⁻² .= sim.model.auxiliary_fields.u⁻¹
-#    sim.model.auxiliary_fields.u⁻¹ .= sim.model.velocities.u
-#    sim.model.velocities.u.boundary_conditions.east.classification.matching_scheme.c⁻¹ .= sim.model.velocities.u
-#end
-#update_aux_fields!(simulation); update_aux_fields!(simulation);
-#simulation.callbacks[:update] = Callback(update_aux_fields!, IterationInterval(1))
+update_second_order_radiation_matching_scheme!(simulation); update_second_order_radiation_matching_scheme!(simulation)
+simulation.callbacks[:update] = Callback(update_second_order_radiation_matching_scheme!, IterationInterval(1))
+
+function update_aux_fields!(sim)
+    sim.model.auxiliary_fields.u⁻² .= sim.model.auxiliary_fields.u⁻¹
+    sim.model.auxiliary_fields.u⁻¹ .= sim.model.velocities.u
+    sim.model.velocities.u.boundary_conditions.east.classification.matching_scheme.c⁻¹ .= sim.model.velocities.u
+end
+update_aux_fields!(simulation); update_aux_fields!(simulation);
+simulation.callbacks[:update] = Callback(update_aux_fields!, IterationInterval(1))
 
 u, v, w = model.velocities
 outputs = (; model.velocities..., ζ = (@at (Center, Center, Center) ∂x(v) - ∂y(u)))
-filename = "cylinder_FOR_$(extra_downstream)_Re_$Re.jld2"
+filename = "cylinder_SOR_$(extra_downstream)_Re_$Re.jld2"
 simulation.output_writers[:velocity] = JLD2OutputWriter(model, outputs,
                                                         overwrite_existing = true, 
                                                         filename = filename,
@@ -119,7 +118,7 @@ n = Observable(1)
 
 heatmap!(ax, collect(xc), collect(yc), ζ_plt, colorrange = (-2, 2), colormap = :roma)
 
-record(fig, "ζ_Re_$Re.mp4", 1:length(u_ts.times), framerate = 12) do i;
+record(fig, "ζ_$filename.mp4", 1:length(u_ts.times), framerate = 12) do i;
     n[] = i
     i % 10 == 0 && @info "$(n.val) of $(length(u_ts.times))"
 end
