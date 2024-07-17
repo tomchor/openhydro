@@ -38,7 +38,9 @@ grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size 
 
 @inline u∞(y, t, U) = U * (1 + 0.01 * randn())
 
-u_boundaries = FieldBoundaryConditions(east = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1),
+c⁻¹ = Field{Nothing, Center, Center}(grid)
+
+u_boundaries = FieldBoundaryConditions(east = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹=c⁻¹),
 #u_boundaries = FieldBoundaryConditions(east = OpenBoundaryCondition(U),
 #u_boundaries = FieldBoundaryConditions(east = FlatExtrapolationOpenBoundaryCondition(U),
                                        west = OpenBoundaryCondition(u∞, parameters = U))
@@ -74,12 +76,28 @@ simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(100))
 progress(sim) = @info "$(time(sim)) with Δt = $(prettytime(sim.Δt)) in $(prettytime(sim.run_wall_time))"
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 
-function update_aux_fields!(sim)
-    sim.model.auxiliary_fields.u⁻² .= sim.model.auxiliary_fields.u⁻¹
-    sim.model.auxiliary_fields.u⁻¹ .= sim.model.velocities.u
+using Oceananigans: prognostic_fields
+function update_first_order_radiation_matching_scheme!(sim)
+    fields = prognostic_fields(sim.model)
+    for (field_name, field) in zip(keys(fields), values(fields))
+        bcs = field.boundary_conditions
+        bcs.east  isa FOROBC && (interior(sim.model.velocities.u.boundary_conditions.east.classification.matching_scheme.c⁻¹,  1, :, :) .= interior(sim.model.velocities.u, grid.Nx, :, :))
+        bcs.west  isa FOROBC && (interior(sim.model.velocities.u.boundary_conditions.west.classification.matching_scheme.c⁻¹,  1, :, :) .= interior(sim.model.velocities.u, 2, :, :))
+        bcs.south isa FOROBC && (interior(sim.model.velocities.v.boundary_conditions.south.classification.matching_scheme.c⁻¹, :, 1, :) .= interior(sim.model.velocities.v, :, grid.Nx, :))
+        bcs.north isa FOROBC && (interior(sim.model.velocities.v.boundary_conditions.north.classification.matching_scheme.c⁻¹, :, 1, :) .= interior(sim.model.velocities.v, :, 2, :))
+    end
 end
-update_aux_fields!(simulation); update_aux_fields!(simulation);
-simulation.callbacks[:update] = Callback(update_aux_fields!, IterationInterval(1))
+update_first_order_radiation_matching_scheme!(simulation)
+simulation.callbacks[:update] = Callback(update_first_order_radiation_matching_scheme!, IterationInterval(1))
+pause
+
+#function update_aux_fields!(sim)
+#    sim.model.auxiliary_fields.u⁻² .= sim.model.auxiliary_fields.u⁻¹
+#    sim.model.auxiliary_fields.u⁻¹ .= sim.model.velocities.u
+#    sim.model.velocities.u.boundary_conditions.east.classification.matching_scheme.c⁻¹ .= sim.model.velocities.u
+#end
+#update_aux_fields!(simulation); update_aux_fields!(simulation);
+#simulation.callbacks[:update] = Callback(update_aux_fields!, IterationInterval(1))
 
 u, v, w = model.velocities
 outputs = (; model.velocities..., ζ = (@at (Center, Center, Center) ∂x(v) - ∂y(u)))
