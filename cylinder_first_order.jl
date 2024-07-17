@@ -55,9 +55,6 @@ v_forcing = Relaxation(; rate = 1 / (2 * Δt), mask = cylinder)
 model = NonhydrostaticModel(; grid, 
                               closure, 
                               forcing = (u = u_forcing, v = v_forcing),
-                              auxiliary_fields = (u⁻¹ = Field{Face, Center, Center}(grid),
-                                                  u⁻² = Field{Face, Center, Center}(grid),
-                                                  ),
                               boundary_conditions = (u = u_boundaries, v = v_boundaries))
 
 @info "Constructed model"
@@ -75,8 +72,8 @@ simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(100))
 progress(sim) = @info "$(time(sim)) with Δt = $(prettytime(sim.Δt)) in $(prettytime(sim.run_wall_time))"
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 
-update_first_order_radiation_matching_scheme!(simulation)
-simulation.callbacks[:update] = Callback(update_first_order_radiation_matching_scheme!, IterationInterval(1))
+#update_first_order_radiation_matching_scheme!(simulation)
+#simulation.callbacks[:update] = Callback(update_first_order_radiation_matching_scheme!, IterationInterval(1))
 
 u, v, w = model.velocities
 outputs = (; model.velocities..., ζ = (@at (Center, Center, Center) ∂x(v) - ∂y(u)))
