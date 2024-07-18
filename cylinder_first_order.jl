@@ -108,7 +108,7 @@ n = Observable(1)
 
 heatmap!(ax, collect(xc), collect(yc), ζ_plt, colorrange = (-2, 2), colormap = :roma)
 
-record(fig, "ζ_Re_$Re.mp4", 1:length(u_ts.times), framerate = 12) do i;
+record(fig, "ζ_$filename.mp4", 1:length(u_ts.times), framerate = 12) do i;
     n[] = i
     i % 10 == 0 && @info "$(n.val) of $(length(u_ts.times))"
 end

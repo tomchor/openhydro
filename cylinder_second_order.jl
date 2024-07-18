@@ -37,10 +37,11 @@ grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size 
 
 @inline u∞(y, t, U) = U * (1 + 0.01 * randn())
 
-c⁻¹ = Field{Nothing, Center, Center}(grid)
-c⁻² = Field{Nothing, Center, Center}(grid)
+c⁻¹₋₁ = Field{Nothing, Center, Center}(grid)
+c⁻¹₋₂ = Field{Nothing, Center, Center}(grid)
+c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
 
-u_boundaries = FieldBoundaryConditions(east = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹, c⁻²),
+u_boundaries = FieldBoundaryConditions(east = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂),
                                        west = OpenBoundaryCondition(u∞, parameters = U))
 
 v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
@@ -80,7 +81,6 @@ simulation.callbacks[:update] = Callback(update_second_order_radiation_matching_
 function update_aux_fields!(sim)
     sim.model.auxiliary_fields.u⁻² .= sim.model.auxiliary_fields.u⁻¹
     sim.model.auxiliary_fields.u⁻¹ .= sim.model.velocities.u
-    sim.model.velocities.u.boundary_conditions.east.classification.matching_scheme.c⁻¹ .= sim.model.velocities.u
 end
 update_aux_fields!(simulation); update_aux_fields!(simulation);
 simulation.callbacks[:update] = Callback(update_aux_fields!, IterationInterval(1))
