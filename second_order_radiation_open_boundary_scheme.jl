@@ -88,13 +88,25 @@ function update_second_order_radiation_matching_scheme!(sim)
     fields = prognostic_fields(sim.model)
     for (field_name, field) in zip(keys(fields), values(fields))
         bcs = field.boundary_conditions
-        bcs.west   isa SOROBC && (interior(bcs.west.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, 2, :, :))
+        bcs.west   isa SOROBC && (interior(bcs.west.classification.matching_scheme.c⁻²₋₂,   1, :, :) .= interior(bcs.west.classification.matching_scheme.c⁻¹₋₂, 1, :, :);
+                                  interior(bcs.west.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, 3, :, :);
+                                  interior(bcs.west.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, 2, :, :);)
         bcs.east   isa SOROBC && (interior(bcs.east.classification.matching_scheme.c⁻²₋₂,   1, :, :) .= interior(bcs.east.classification.matching_scheme.c⁻¹₋₂, 1, :, :);
                                   interior(bcs.east.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, grid.Nx - 1, :, :);
                                   interior(bcs.east.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, grid.Nx,     :, :))
-        bcs.south  isa SOROBC && (interior(bcs.south.classification.matching_scheme.c⁻¹₋₁,  :, 1, :) .= interior(field, :, 2, :))
-        bcs.north  isa SOROBC && (interior(bcs.north.classification.matching_scheme.c⁻¹₋₁,  :, 1, :) .= interior(field, :, grid.Ny, :))
-        bcs.bottom isa SOROBC && (interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₁, :, :, 1) .= interior(field, :, :, 2))
-        bcs.top    isa SOROBC && (interior(bcs.top.classification.matching_scheme.c⁻¹₋₁,    :, :, 1) .= interior(field, :, :, grid.Nz))
+
+        bcs.south  isa SOROBC && (interior(bcs.south.classification.matching_scheme.c⁻²₋₂,  :, 1, :) .= interior(bcs.south.classification.matching_scheme.c⁻¹₋₂, :, 1, :);
+                                  interior(bcs.south.classification.matching_scheme.c⁻¹₋₂,  :, 1, :) .= interior(field, :, 3, :);
+                                  interior(bcs.south.classification.matching_scheme.c⁻¹₋₁,  :, 1, :) .= interior(field, :, 2, :))
+        bcs.north  isa SOROBC && (interior(bcs.north.classification.matching_scheme.c⁻²₋₂,  :, 1, :) .= interior(bcs.north.classification.matching_scheme.c⁻¹₋₂, :, 1, :);
+                                  interior(bcs.north.classification.matching_scheme.c⁻¹₋₂,  :, 1, :) .= interior(field, :, grid.Nx - 1, :);
+                                  interior(bcs.north.classification.matching_scheme.c⁻¹₋₁,  :, 1, :) .= interior(field, :, grid.Nx,     :))
+
+        bcs.bottom isa SOROBC && (interior(bcs.bottom.classification.matching_scheme.c⁻²₋₂, :, :, 1) .= interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₂, :, :, 1);
+                                  interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₂, :, :, 1) .= interior(field, :, :, 3);
+                                  interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₁, :, :, 1) .= interior(field, :, :, 2))
+        bcs.top    isa SOROBC && (interior(bcs.top.classification.matching_scheme.c⁻²₋₂,    :, :, 1) .= interior(bcs.top.classification.matching_scheme.c⁻¹₋₂, :, 1, :);
+                                  interior(bcs.top.classification.matching_scheme.c⁻¹₋₂,    :, :, 1) .= interior(field, :, :, grid.Nx - 1);
+                                  interior(bcs.top.classification.matching_scheme.c⁻¹₋₁,    :, :, 1) .= interior(field, :, :, :, grid.Nz))
     end
 end
