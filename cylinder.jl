@@ -131,6 +131,7 @@ function run_cylinder(u_east_bc; plot=true)
     end
 end
 
+c⁻¹   = Field{Nothing, Center, Center}(grid)
 c⁻¹₋₁ = Field{Nothing, Center, Center}(grid)
 c⁻¹₋₂ = Field{Nothing, Center, Center}(grid)
 c⁻²₋₁ = Field{Nothing, Center, Center}(grid)
@@ -138,6 +139,6 @@ c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
 
 u_east_fo = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
 u_east_so = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
-u_east_or = OrlanskiOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, c⁻²₋₂)
+u_east_or = OrlanskiOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, c⁻²₋₂)
 run_cylinder(u_east_or)
 

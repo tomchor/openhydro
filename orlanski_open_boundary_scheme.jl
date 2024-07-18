@@ -8,16 +8,17 @@ Subscripts are spatial offsets
 """
 struct Orlanski{FT}
     relaxation_timescale :: FT
+    c⁻¹
     c⁻¹₋₁
     c⁻¹₋₂
     c⁻²₋₁
-    c⁻²₋₂
+    c⁻²₋₂ # This one seems to be unnecessary!
 end
 
 OOBC = BoundaryCondition{<:Open{<:Orlanski}}
 
-function OrlanskiOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, c⁻¹₋₁ = nothing, c⁻¹₋₂ = nothing, c⁻²₋₁ = nothing, c⁻²₋₂ = nothing, kwargs...)
-    classification = Open(Orlanski(relaxation_timescale, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, c⁻²₋₂))
+function OrlanskiOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, c⁻¹ = nothing, c⁻¹₋₁ = nothing, c⁻¹₋₂ = nothing, c⁻²₋₁ = nothing, c⁻²₋₂ = nothing, kwargs...)
+    classification = Open(Orlanski(relaxation_timescale, c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, c⁻²₋₂))
     return BoundaryCondition(classification, val; kwargs...)
 end
 
@@ -34,7 +35,8 @@ end
     return c + Δc
 end
 
-@inline function constrain_outflow(l, m, cₑₓₜ, cᵢₙₜ, cₘₐₓ, Cᵩ_norm)
+@inline function constrain_outflow(l, m, grid, bc, cᵢₙₜ, cₘₐₓ, Cᵩ_norm, clock, model_fields)
+    cₑₓₜ = getbc(bc, l, m, grid, clock, model_fields)
     return @inbounds ifelse(Cᵩ_norm <= 0,
                             cₑₓₜ,
                             ifelse(Cᵩ_norm <= 1,
@@ -59,10 +61,9 @@ end
          (c[i - 1, j, k] + bc.classification.matching_scheme.c⁻²₋₁[1, j, k] - bc.classification.matching_scheme.c⁻¹₋₂[1, j, k])
     Cᵩ_norm = Cᵩ / Cᵩ_max
 
-    cₑₓₜ = getbc(bc, j, k, grid, clock, model_fields)
-    cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.c⁻¹₋₂[1, j, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * c[i - 1, j, k]) / (1 + Cᵩ_norm)
+    cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.c⁻¹[1, j, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * c[i - 1, j, k]) / (1 + Cᵩ_norm)
     cₘₐₓ = @inbounds bc.classification.matching_scheme.c⁻¹₋₁[1, j, k]
-    @inbounds c[i, j, k] = constrain_outflow(j, k, cₑₓₜ, cᵢₙₜ, cₘₐₓ, Cᵩ_norm)
+    @inbounds c[i, j, k] = constrain_outflow(j, k, grid, bc, cᵢₙₜ, cₘₐₓ, Cᵩ_norm, clock, model_fields)
 
     return nothing
 end
@@ -110,7 +111,8 @@ function update_orlanski_matching_scheme!(sim)
         bcs.east   isa OOBC && (interior(bcs.east.classification.matching_scheme.c⁻²₋₂,   1, :, :) .= interior(bcs.east.classification.matching_scheme.c⁻¹₋₂, 1, :, :);
                                 interior(bcs.east.classification.matching_scheme.c⁻²₋₁,   1, :, :) .= interior(bcs.east.classification.matching_scheme.c⁻¹₋₁, 1, :, :);
                                 interior(bcs.east.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, grid.Nx - 1, :, :);
-                                interior(bcs.east.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, grid.Nx,     :, :))
+                                interior(bcs.east.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, grid.Nx,     :, :);
+                                interior(bcs.east.classification.matching_scheme.c⁻¹,     1, :, :) .= interior(field, grid.Nx + 1, :, :))
 
         bcs.south  isa OOBC && (interior(bcs.south.classification.matching_scheme.c⁻²₋₂,  :, 1, :) .= interior(bcs.south.classification.matching_scheme.c⁻¹₋₂, :, 1, :);
                                 interior(bcs.south.classification.matching_scheme.c⁻¹₋₂,  :, 1, :) .= interior(field, :, 3, :);
