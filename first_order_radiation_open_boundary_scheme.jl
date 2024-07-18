@@ -84,9 +84,9 @@ function update_first_order_radiation_matching_scheme!(sim)
         bcs = field.boundary_conditions
         bcs.west   isa FOROBC && (interior(bcs.west.classification.matching_scheme.c⁻¹,   1, :, :) .= interior(field, 2, :, :))
         bcs.east   isa FOROBC && (interior(bcs.east.classification.matching_scheme.c⁻¹,   1, :, :) .= interior(field, grid.Nx, :, :))
-        bcs.south  isa FOROBC && (interior(bcs.south.classification.matching_scheme.c⁻¹,  :, 1, :) .= interior(field, :, grid.Ny, :))
-        bcs.north  isa FOROBC && (interior(bcs.north.classification.matching_scheme.c⁻¹,  :, 1, :) .= interior(field, :, 2, :))
-        bcs.bottom isa FOROBC && (interior(bcs.bottom.classification.matching_scheme.c⁻¹, :, :, 1) .= interior(field, :, :, grid.Nz))
-        bcs.top    isa FOROBC && (interior(bcs.top.classification.matching_scheme.c⁻¹,    :, :, 1) .= interior(field, :, :, 2))
+        bcs.south  isa FOROBC && (interior(bcs.south.classification.matching_scheme.c⁻¹,  :, 1, :) .= interior(field, :, 2, :))
+        bcs.north  isa FOROBC && (interior(bcs.north.classification.matching_scheme.c⁻¹,  :, 1, :) .= interior(field, :, grid.Ny, :))
+        bcs.bottom isa FOROBC && (interior(bcs.bottom.classification.matching_scheme.c⁻¹, :, :, 1) .= interior(field, :, :, 2))
+        bcs.top    isa FOROBC && (interior(bcs.top.classification.matching_scheme.c⁻¹,    :, :, 1) .= interior(field, :, :, grid.Nz))
     end
 end
