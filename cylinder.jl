@@ -30,8 +30,8 @@ y = (-5, 5) .* D
 Ny = Int(10 / resolution)
 Nx = Ny + Int(extra_downstream / resolution)
 
-ν = U * D / Re
-Δt = .3 * resolution / U
+ν = abs(U) * D / Re
+Δt = .3 * resolution / abs(U)
 
 closure = ScalarDiffusivity(; ν, κ = ν)
 grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size = (Nx, Ny), x, y)
@@ -132,5 +132,4 @@ c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
 u_east_fo = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
 u_east_so = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
 run_cylinder(u_east_so)
-
 
