@@ -15,7 +15,7 @@ end
 
 SOROBC = BoundaryCondition{<:Open{<:SecondOrderRadiation}}
 
-function SecondOrderRadiationOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, c⁻¹₋₁ = nothing, c⁻¹₋₂ = nothing, c⁻²₋₂, kwargs...)
+function SecondOrderRadiationOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, c⁻¹₋₁ = nothing, c⁻¹₋₂ = nothing, c⁻²₋₂ = nothing, kwargs...)
     classification = Open(SecondOrderRadiation(relaxation_timescale, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂))
     return BoundaryCondition(classification, val; kwargs...)
 end

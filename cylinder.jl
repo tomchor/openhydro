@@ -2,6 +2,7 @@ using Oceananigans, CairoMakie
 using Oceananigans.BoundaryConditions: FlatExtrapolationOpenBoundaryCondition
 include("first_order_radiation_open_boundary_scheme.jl")
 include("second_order_radiation_open_boundary_scheme.jl")
+include("orlanski_open_boundary_scheme.jl")
 
 @kwdef struct Cylinder{FT}
     D :: FT = 1.
@@ -80,6 +81,9 @@ function run_cylinder(u_east_bc; plot=true)
     elseif u_east_bc.classification.matching_scheme isa SecondOrderRadiation
         update_second_order_radiation_matching_scheme!(simulation); update_second_order_radiation_matching_scheme!(simulation)
         simulation.callbacks[:update_bc] = Callback(update_second_order_radiation_matching_scheme!, IterationInterval(1))
+    elseif u_east_bc.classification.matching_scheme isa Orlanski
+        update_orlanski_matching_scheme!(simulation); update_orlanski_matching_scheme!(simulation)
+        simulation.callbacks[:update_bc] = Callback(update_orlanski_matching_scheme!, IterationInterval(1))
     end
 
     function update_aux_fields!(sim)
@@ -88,6 +92,8 @@ function run_cylinder(u_east_bc; plot=true)
     end
     update_aux_fields!(simulation); update_aux_fields!(simulation);
     simulation.callbacks[:update_aux] = Callback(update_aux_fields!, IterationInterval(1))
+
+    time_step!(model, 0.1)
     #---
 
     u, v, w = model.velocities
@@ -127,9 +133,11 @@ end
 
 c⁻¹₋₁ = Field{Nothing, Center, Center}(grid)
 c⁻¹₋₂ = Field{Nothing, Center, Center}(grid)
+c⁻²₋₁ = Field{Nothing, Center, Center}(grid)
 c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
 
 u_east_fo = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
 u_east_so = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
-run_cylinder(u_east_so)
+u_east_or = OrlanskiOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, c⁻²₋₂)
+run_cylinder(u_east_or)
 
