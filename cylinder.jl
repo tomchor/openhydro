@@ -126,18 +126,20 @@ function run_cylinder(boundary_conditions; plot=true, simname = "")
     end
 end
 
-c⁻¹   = Field{Nothing, Center, Center}(grid)
-c⁻¹₋₁ = Field{Nothing, Center, Center}(grid)
-c⁻¹₋₂ = Field{Nothing, Center, Center}(grid)
-c⁻²₋₁ = Field{Nothing, Center, Center}(grid)
-c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
+u₋₁   = Field{Nothing, Center, Center}(grid)
+v₋₁   = Field{Center, Nothing, Center}(grid)
 
-u_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
-u_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
-u_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁)
+u_east_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = copy(u₋₁))
+u_west_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = copy(u₋₁))
 
-u_boundaries = FieldBoundaryConditions(east = u_fo,
-                                       west = u_fo)
+u_east_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
+u_west_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
+
+u_west_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹ = copy(u₋₁),   c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₁ = copy(u₋₁))
+
+u_boundaries = FieldBoundaryConditions(west = u_west_so,
+                                       east = u_east_so,
+                                       )
 
 v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
                                        west = GradientBoundaryCondition(0))
@@ -147,3 +149,7 @@ boundary_conditions = (u = u_boundaries, v = v_boundaries)
 
 run_cylinder(boundary_conditions, simname = nameof(typeof(u_boundaries.east.classification.matching_scheme)))
 
+
+#display(interior(model.velocities.u.boundary_conditions.east.classification.matching_scheme.c⁻¹, 1, 1:10 ,1))
+#display(interior(model.auxiliary_fields.u⁻¹, grid.Nx, 1:10, 1))
+#@show interior(model.velocities.u.boundary_conditions.west.classification.matching_scheme.c⁻¹, 1,1:10,1) interior(model.auxiliary_fields.u⁻¹, 2, 1:10, 1)
