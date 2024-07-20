@@ -129,16 +129,17 @@ end
 u₋₁   = Field{Nothing, Center, Center}(grid)
 v₋₁   = Field{Center, Nothing, Center}(grid)
 
-u_east_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = copy(u₋₁))
 u_west_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = copy(u₋₁))
+u_east_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = copy(u₋₁))
 
-u_east_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
 u_west_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
+u_east_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
 
 u_west_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹ = copy(u₋₁),   c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₁ = copy(u₋₁))
+u_east_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹ = copy(u₋₁),   c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₁ = copy(u₋₁))
 
-u_boundaries = FieldBoundaryConditions(west = u_west_so,
-                                       east = u_east_so,
+u_boundaries = FieldBoundaryConditions(west = u_west_or,
+                                       east = u_east_or,
                                        )
 
 v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
