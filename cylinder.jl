@@ -19,32 +19,37 @@ Re = 200
 U = 1
 D = 1.
 resolution = D / 10
+T = 20 / U
 
 # add extra downstream distance to see if the solution near the cylinder changes
-extra_downstream = 0
+ΔL = 0
 
 cylinder = Cylinder(; D)
 
-x = (-5, 5 + extra_downstream) .* D
-y = (-5, 5) .* D
+L = 10
+y = (-L/2, +L/2) .* D
 
 Ny = Int(10 / resolution)
-Nx = Ny + Int(extra_downstream / resolution)
+Nx = Ny + Int(ΔL / resolution)
+
+β = 0.2
+x_faces(i) = (L + ΔL)/2 * (β * ((2 * (i - 1)) / Nx - 1)^3 + (2 * (i - 1)) / Nx - 1) / (β+1)
 
 ν = abs(U) * D / Re
 Δt = .3 * resolution / abs(U)
 
 closure = ScalarDiffusivity(; ν, κ = ν)
-grid = RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size = (Nx, Ny), x, y)
+grid = @show RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size = (Nx, Ny), x = x_faces, y)
 
-@inline u∞(y, t, U) = U * (1 + 0.01 * randn())
+@inline u∞(y, t, p) = p.U * cos(t * 2π / p.T) * (1 + 0.01 * randn())
+@inline v∞(y, t, p) = p.U * sin(t * 2π / p.T) * (1 + 0.01 * randn())
 
 function run_cylinder(u_east_bc; plot=true)
     bc_name = string(nameof(typeof(u_east_bc.classification.matching_scheme)))
     @info "Testing $bc_name"
 
     u_boundaries = FieldBoundaryConditions(east = u_east_bc,
-                                           west = OpenBoundaryCondition(u∞, parameters = U))
+                                           west = OpenBoundaryCondition(u∞, parameters = (; U, T)))
 
     v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
                                            west = GradientBoundaryCondition(0))
@@ -98,7 +103,7 @@ function run_cylinder(u_east_bc; plot=true)
 
     u, v, w = model.velocities
     outputs = (; model.velocities..., ζ = (@at (Center, Center, Center) ∂x(v) - ∂y(u)))
-    filename = "cylinder_$(bc_name)_$(extra_downstream)_Re_$Re.jld2"
+    filename = "cylinder_$(bc_name)_$(ΔL)_Re_$Re.jld2"
     simulation.output_writers[:velocity] = JLD2OutputWriter(model, outputs,
                                                             overwrite_existing = true, 
                                                             filename = filename,
@@ -136,7 +141,7 @@ c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
 
 u_east_fo = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
 u_east_so = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
-u_east_or = OrlanskiOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁)
+u_east_or = OrlanskiOpenBoundaryCondition(u∞, relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, parameters = (; U, T))
 
 run_cylinder(u_east_or)
 
