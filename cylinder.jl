@@ -44,15 +44,8 @@ grid = @show RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat),
 @inline u∞(y, t, p) = p.U * cos(t * 2π / p.T) * (1 + 0.01 * randn())
 @inline v∞(y, t, p) = p.U * sin(t * 2π / p.T) * (1 + 0.01 * randn())
 
-function run_cylinder(u_east_bc; plot=true)
-    bc_name = string(nameof(typeof(u_east_bc.classification.matching_scheme)))
-    @info "Testing $bc_name"
-
-    u_boundaries = FieldBoundaryConditions(east = u_east_bc,
-                                           west = OpenBoundaryCondition(u∞, parameters = (; U, T)))
-
-    v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
-                                           west = GradientBoundaryCondition(0))
+function run_cylinder(boundary_conditions; plot=true, simname = "")
+    @info "Testing $simname"
 
     u_forcing = Relaxation(; rate = 1 / (2 * Δt), mask = cylinder)
     v_forcing = Relaxation(; rate = 1 / (2 * Δt), mask = cylinder) 
@@ -63,7 +56,7 @@ function run_cylinder(u_east_bc; plot=true)
                                        auxiliary_fields = (u⁻¹ = Field{Face, Center, Center}(grid),
                                                            u⁻² = Field{Face, Center, Center}(grid),
                                                            ),
-                                       boundary_conditions = (u = u_boundaries, v = v_boundaries))
+                                       boundary_conditions)
 
     @info "Constructed model"
 
@@ -80,13 +73,13 @@ function run_cylinder(u_east_bc; plot=true)
     progress(sim) = @info "$(time(sim)) with Δt = $(prettytime(sim.Δt)) in $(prettytime(sim.run_wall_time))"
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 
-    if u_east_bc.classification.matching_scheme isa FirstOrderRadiation
+    if boundary_conditions.u.east.classification.matching_scheme isa FirstOrderRadiation
         update_first_order_radiation_matching_scheme!(simulation)
         simulation.callbacks[:update_bc] = Callback(update_first_order_radiation_matching_scheme!, IterationInterval(1))
-    elseif u_east_bc.classification.matching_scheme isa SecondOrderRadiation
+    elseif boundary_conditions.u.east.classification.matching_scheme isa SecondOrderRadiation
         update_second_order_radiation_matching_scheme!(simulation); update_second_order_radiation_matching_scheme!(simulation)
         simulation.callbacks[:update_bc] = Callback(update_second_order_radiation_matching_scheme!, IterationInterval(1))
-    elseif u_east_bc.classification.matching_scheme isa Orlanski
+    elseif boundary_conditions.u.east.classification.matching_scheme isa Orlanski
         update_orlanski_matching_scheme!(simulation); update_orlanski_matching_scheme!(simulation)
         simulation.callbacks[:update_bc] = Callback(update_orlanski_matching_scheme!, IterationInterval(1))
     end
@@ -103,7 +96,7 @@ function run_cylinder(u_east_bc; plot=true)
 
     u, v, w = model.velocities
     outputs = (; model.velocities..., ζ = (@at (Center, Center, Center) ∂x(v) - ∂y(u)))
-    filename = "cylinder_$(bc_name)_$(ΔL)_Re_$Re.jld2"
+    filename = "cylinder_$(simname)_$(ΔL)_Re_$Re.jld2"
     simulation.output_writers[:velocity] = JLD2OutputWriter(model, outputs,
                                                             overwrite_existing = true, 
                                                             filename = filename,
@@ -139,9 +132,18 @@ c⁻¹₋₂ = Field{Nothing, Center, Center}(grid)
 c⁻²₋₁ = Field{Nothing, Center, Center}(grid)
 c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
 
-u_east_fo = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
-u_east_so = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
-u_east_or = OrlanskiOpenBoundaryCondition(u∞, relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, parameters = (; U, T))
+u_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
+u_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
+u_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁)
 
-run_cylinder(u_east_or)
+u_boundaries = FieldBoundaryConditions(east = u_fo,
+                                       west = u_fo)
+
+v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
+                                       west = GradientBoundaryCondition(0))
+
+
+boundary_conditions = (u = u_boundaries, v = v_boundaries)
+
+run_cylinder(boundary_conditions, simname = nameof(typeof(u_boundaries.east.classification.matching_scheme)))
 
