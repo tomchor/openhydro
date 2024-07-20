@@ -109,10 +109,7 @@ function run_cylinder(u_east_bc; plot=true)
 
     if plot
         # load the results 
-        u_ts = FieldTimeSeries(filename, "u")
-        v_ts = FieldTimeSeries(filename, "v")
         ζ_ts = FieldTimeSeries(filename, "ζ")
-
         @info "Loaded results"
 
         # plot the results
@@ -124,9 +121,9 @@ function run_cylinder(u_east_bc; plot=true)
 
         ζ_plt = @lift ζ_ts[:, :, 1, $n].parent
         heatmap!(ax, collect(xc), collect(yc), ζ_plt, colorrange = (-2, 2), colormap = :roma)
-        record(fig, "ζ_$filename.mp4", 1:length(u_ts.times), framerate = 12) do i;
+        record(fig, "ζ_$filename.mp4", 1:length(ζ_ts.times), framerate = 12) do i;
             n[] = i
-            i % 10 == 0 && @info "$(n.val) of $(length(u_ts.times))"
+            i % 10 == 0 && @info "$(n.val) of $(length(ζ_ts.times))"
         end
     end
 end
@@ -139,6 +136,7 @@ c⁻²₋₂ = Field{Nothing, Center, Center}(grid)
 
 u_east_fo = FirstOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1, c⁻¹ = c⁻¹₋₁)
 u_east_so = SecondOrderRadiationOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₂)
-u_east_or = OrlanskiOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, c⁻²₋₂)
+u_east_or = OrlanskiOpenBoundaryCondition(U, relaxation_timescale=1; c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁)
+
 run_cylinder(u_east_or)
 

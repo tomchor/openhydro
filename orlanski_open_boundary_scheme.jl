@@ -12,13 +12,12 @@ struct Orlanski{FT}
     c⁻¹₋₁
     c⁻¹₋₂
     c⁻²₋₁
-    c⁻²₋₂ # This one seems to be unnecessary!
 end
 
 OOBC = BoundaryCondition{<:Open{<:Orlanski}}
 
-function OrlanskiOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, c⁻¹ = nothing, c⁻¹₋₁ = nothing, c⁻¹₋₂ = nothing, c⁻²₋₁ = nothing, c⁻²₋₂ = nothing, kwargs...)
-    classification = Open(Orlanski(relaxation_timescale, c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁, c⁻²₋₂))
+function OrlanskiOpenBoundaryCondition(val = nothing; relaxation_timescale = Inf, c⁻¹ = nothing, c⁻¹₋₁ = nothing, c⁻¹₋₂ = nothing, c⁻²₋₁ = nothing, kwargs...)
+    classification = Open(Orlanski(relaxation_timescale, c⁻¹, c⁻¹₋₁, c⁻¹₋₂, c⁻²₋₁))
     return BoundaryCondition(classification, val; kwargs...)
 end
 
@@ -47,15 +46,21 @@ end
 const C = Center()
 
 @inline function _fill_west_open_halo!(j, k, grid, c, bc::OOBC, loc, clock, model_fields)
-    gradient_free_c = @inbounds 2 * bc.classification.matching_scheme.c⁻¹₋₁[1, j, k] - bc.classification.matching_scheme.c⁻²₋₂[1, j, k]
-    @inbounds c[1, j, k] = relax(j, k, gradient_free_c, bc, grid, clock, model_fields)
+    Cᵩ_max = xspacing(2, j, k, grid, C, C, C) / (2 * clock.last_stage_Δt)
+    Cᵩ = (c[2, j, k] - bc.classification.matching_scheme.c⁻²₋₁[1, j, k]) * (Cᵩ_max / 2) /
+         (c[2, j, k] + bc.classification.matching_scheme.c⁻²₋₁[1, j, k] - bc.classification.matching_scheme.c⁻¹₋₂[1, j, k])
+    Cᵩ_norm = Cᵩ / Cᵩ_max
+
+    cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.c⁻¹[1, j, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * c[2, j, k]) / (1 + Cᵩ_norm)
+    cₘₐₓ = @inbounds bc.classification.matching_scheme.c⁻¹₋₁[1, j, k]
+    @inbounds c[1, j, k] = constrain_outflow(j, k, grid, bc, cᵢₙₜ, cₘₐₓ, Cᵩ_norm, clock, model_fields)
 
     return nothing
 end
 
 @inline function _fill_east_open_halo!(j, k, grid, c, bc::OOBC, loc, clock, model_fields)
     i = grid.Nx + 1
-    Cᵩ_max = xspacing(i - 2, j, k, grid, Center(), Center(), Center()) / (2 * clock.last_stage_Δt)
+    Cᵩ_max = xspacing(i - 2, j, k, grid, C, C, C) / (2 * clock.last_stage_Δt)
     Cᵩ = (c[i - 1, j, k] - bc.classification.matching_scheme.c⁻²₋₁[1, j, k]) * (Cᵩ_max / 2) /
          (c[i - 1, j, k] + bc.classification.matching_scheme.c⁻²₋₁[1, j, k] - bc.classification.matching_scheme.c⁻¹₋₂[1, j, k])
     Cᵩ_norm = Cᵩ / Cᵩ_max
