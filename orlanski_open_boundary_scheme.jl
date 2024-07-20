@@ -42,7 +42,6 @@ end
                             ifelse(Cᵩ_norm <= 1,
                                    cᵢₙₜ,
                                    cₘₐₓ))
-
 end
 
 const C = Center()
@@ -103,28 +102,31 @@ end
 using Oceananigans: prognostic_fields
 function update_orlanski_matching_scheme!(sim)
     fields = prognostic_fields(sim.model)
+    i = grid.Nx + 1
+    j = grid.Ny + 1
+    k = grid.Nz + 1
     for (field_name, field) in zip(keys(fields), values(fields))
         bcs = field.boundary_conditions
-        bcs.west   isa OOBC && (interior(bcs.west.classification.matching_scheme.c⁻²₋₂,   1, :, :) .= interior(bcs.west.classification.matching_scheme.c⁻¹₋₂, 1, :, :);
+        bcs.west   isa OOBC && (interior(bcs.west.classification.matching_scheme.c⁻²₋₁,   1, :, :) .= interior(bcs.west.classification.matching_scheme.c⁻¹₋₁, 1, :, :);
                                 interior(bcs.west.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, 3, :, :);
-                                interior(bcs.west.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, 2, :, :);)
-        bcs.east   isa OOBC && (interior(bcs.east.classification.matching_scheme.c⁻²₋₂,   1, :, :) .= interior(bcs.east.classification.matching_scheme.c⁻¹₋₂, 1, :, :);
-                                interior(bcs.east.classification.matching_scheme.c⁻²₋₁,   1, :, :) .= interior(bcs.east.classification.matching_scheme.c⁻¹₋₁, 1, :, :);
-                                interior(bcs.east.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, grid.Nx - 1, :, :);
-                                interior(bcs.east.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, grid.Nx,     :, :);
-                                interior(bcs.east.classification.matching_scheme.c⁻¹,     1, :, :) .= interior(field, grid.Nx + 1, :, :))
+                                interior(bcs.west.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, 2, :, :);
+                                interior(bcs.east.classification.matching_scheme.c⁻¹,     1, :, :) .= interior(field, 1, :, :))
+        bcs.east   isa OOBC && (interior(bcs.east.classification.matching_scheme.c⁻²₋₁,   1, :, :) .= interior(bcs.east.classification.matching_scheme.c⁻¹₋₁, 1, :, :);
+                                interior(bcs.east.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, i - 2, :, :);
+                                interior(bcs.east.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, i - 1, :, :);
+                                interior(bcs.east.classification.matching_scheme.c⁻¹,     1, :, :) .= interior(field, i,     :, :))
 
-        bcs.south  isa OOBC && (interior(bcs.south.classification.matching_scheme.c⁻²₋₂,  :, 1, :) .= interior(bcs.south.classification.matching_scheme.c⁻¹₋₂, :, 1, :);
+        bcs.south  isa OOBC && (interior(bcs.south.classification.matching_scheme.c⁻²₋₁,  :, 1, :) .= interior(bcs.south.classification.matching_scheme.c⁻¹₋₁, :, 1, :);
                                 interior(bcs.south.classification.matching_scheme.c⁻¹₋₂,  :, 1, :) .= interior(field, :, 3, :);
                                 interior(bcs.south.classification.matching_scheme.c⁻¹₋₁,  :, 1, :) .= interior(field, :, 2, :))
-        bcs.north  isa OOBC && (interior(bcs.north.classification.matching_scheme.c⁻²₋₂,  :, 1, :) .= interior(bcs.north.classification.matching_scheme.c⁻¹₋₂, :, 1, :);
+        bcs.north  isa OOBC && (interior(bcs.north.classification.matching_scheme.c⁻²₋₁,  :, 1, :) .= interior(bcs.north.classification.matching_scheme.c⁻¹₋₁, :, 1, :);
                                 interior(bcs.north.classification.matching_scheme.c⁻¹₋₂,  :, 1, :) .= interior(field, :, grid.Nx - 1, :);
                                 interior(bcs.north.classification.matching_scheme.c⁻¹₋₁,  :, 1, :) .= interior(field, :, grid.Nx,     :))
 
-        bcs.bottom isa OOBC && (interior(bcs.bottom.classification.matching_scheme.c⁻²₋₂, :, :, 1) .= interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₂, :, :, 1);
+        bcs.bottom isa OOBC && (interior(bcs.bottom.classification.matching_scheme.c⁻²₋₁, :, :, 1) .= interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₂, :, :, 1);
                                 interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₂, :, :, 1) .= interior(field, :, :, 3);
                                 interior(bcs.bottom.classification.matching_scheme.c⁻¹₋₁, :, :, 1) .= interior(field, :, :, 2))
-        bcs.top    isa OOBC && (interior(bcs.top.classification.matching_scheme.c⁻²₋₂,    :, :, 1) .= interior(bcs.top.classification.matching_scheme.c⁻¹₋₂, :, 1, :);
+        bcs.top    isa OOBC && (interior(bcs.top.classification.matching_scheme.c⁻²₋₁,    :, :, 1) .= interior(bcs.top.classification.matching_scheme.c⁻¹₋₁, :, 1, :);
                                 interior(bcs.top.classification.matching_scheme.c⁻¹₋₂,    :, :, 1) .= interior(field, :, :, grid.Nx - 1);
                                 interior(bcs.top.classification.matching_scheme.c⁻¹₋₁,    :, :, 1) .= interior(field, :, :, :, grid.Nz))
     end
