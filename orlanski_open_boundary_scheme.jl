@@ -46,14 +46,15 @@ end
 const C = Center()
 
 @inline function _fill_west_open_halo!(j, k, grid, c, bc::OOBC, loc, clock, model_fields)
+    i = 1
     Cᵩ_max = xspacing(2, j, k, grid, C, C, C) / (2 * clock.last_stage_Δt)
-    Cᵩ = (c[2, j, k] - bc.classification.matching_scheme.c⁻²₋₁[1, j, k]) * (Cᵩ_max / 2) /
-         (c[2, j, k] + bc.classification.matching_scheme.c⁻²₋₁[1, j, k] - bc.classification.matching_scheme.c⁻¹₋₂[1, j, k])
+    Cᵩ = (c[i + 1, j, k] - bc.classification.matching_scheme.c⁻²₋₁[1, j, k]) * (Cᵩ_max / 2) /
+         (c[i + 1, j, k] + bc.classification.matching_scheme.c⁻²₋₁[1, j, k] - bc.classification.matching_scheme.c⁻¹₋₂[1, j, k])
     Cᵩ_norm = Cᵩ / Cᵩ_max
 
-    cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.c⁻¹[1, j, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * c[2, j, k]) / (1 + Cᵩ_norm)
+    cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.c⁻¹[1, j, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * c[i + 1, j, k]) / (1 + Cᵩ_norm)
     cₘₐₓ = @inbounds bc.classification.matching_scheme.c⁻¹₋₁[1, j, k]
-    @inbounds c[1, j, k] = constrain_outflow(j, k, grid, bc, cᵢₙₜ, cₘₐₓ, Cᵩ_norm, clock, model_fields)
+    @inbounds c[i, j, k] = constrain_outflow(j, k, grid, bc, cᵢₙₜ, cₘₐₓ, Cᵩ_norm, clock, model_fields)
 
     return nothing
 end
@@ -115,7 +116,7 @@ function update_orlanski_matching_scheme!(sim)
         bcs.west   isa OOBC && (interior(bcs.west.classification.matching_scheme.c⁻²₋₁,   1, :, :) .= interior(bcs.west.classification.matching_scheme.c⁻¹₋₁, 1, :, :);
                                 interior(bcs.west.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, 3, :, :);
                                 interior(bcs.west.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, 2, :, :);
-                                interior(bcs.east.classification.matching_scheme.c⁻¹,     1, :, :) .= interior(field, 1, :, :))
+                                interior(bcs.west.classification.matching_scheme.c⁻¹,     1, :, :) .= interior(field, 1, :, :))
         bcs.east   isa OOBC && (interior(bcs.east.classification.matching_scheme.c⁻²₋₁,   1, :, :) .= interior(bcs.east.classification.matching_scheme.c⁻¹₋₁, 1, :, :);
                                 interior(bcs.east.classification.matching_scheme.c⁻¹₋₂,   1, :, :) .= interior(field, i - 2, :, :);
                                 interior(bcs.east.classification.matching_scheme.c⁻¹₋₁,   1, :, :) .= interior(field, i - 1, :, :);
