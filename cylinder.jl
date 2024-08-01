@@ -19,7 +19,7 @@ Re = 200
 U = 1
 D = 1.
 resolution = D / 10
-T = 20 / U
+T = 40 / U
 
 # add extra downstream distance to see if the solution near the cylinder changes
 ΔL = 0
@@ -39,7 +39,7 @@ x_faces(i) = (L + ΔL)/2 * (β * ((2 * (i - 1)) / Nx - 1)^3 + (2 * (i - 1)) / Nx
 Δt = .3 * resolution / abs(U)
 
 closure = ScalarDiffusivity(; ν, κ = ν)
-grid = @show RectilinearGrid(architecture; topology = (Bounded, Periodic, Flat), size = (Nx, Ny), x = x_faces, y)
+grid = @show RectilinearGrid(architecture; topology = (Bounded, Bounded, Flat), size = (Nx, Ny), x = x_faces, y)
 
 @inline u∞(y, t, p) = p.U * cos(t * 2π / p.T) * (1 + 0.01 * randn())
 @inline v∞(y, t, p) = p.U * sin(t * 2π / p.T) * (1 + 0.01 * randn())
@@ -129,8 +129,12 @@ end
 u₋₁   = Field{Nothing, Center, Center}(grid)
 v₋₁   = Field{Center, Nothing, Center}(grid)
 
-u_west_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = copy(u₋₁))
-u_east_fo = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, c⁻¹ = copy(u₋₁))
+u_ob = OpenBoundaryCondition(u∞,  parameters = (; U, T))
+
+u_west_fo  = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, ϕ⁻¹ = copy(u₋₁))
+u_east_fo  = FirstOrderRadiationOpenBoundaryCondition(u∞,  parameters = (; U, T), relaxation_timescale=1, ϕ⁻¹ = copy(u₋₁))
+v_south_fo = FirstOrderRadiationOpenBoundaryCondition(v∞,  parameters = (; U, T), relaxation_timescale=1, ϕ⁻¹ = copy(v₋₁))
+v_north_fo = FirstOrderRadiationOpenBoundaryCondition(v∞,  parameters = (; U, T), relaxation_timescale=1, ϕ⁻¹ = copy(v₋₁))
 
 u_west_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
 u_east_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
@@ -138,12 +142,12 @@ u_east_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T
 u_west_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹ = copy(u₋₁),   c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₁ = copy(u₋₁))
 u_east_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹ = copy(u₋₁),   c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₁ = copy(u₋₁))
 
-u_boundaries = FieldBoundaryConditions(west = u_west_or,
-                                       east = u_east_or,
+u_boundaries = FieldBoundaryConditions(west = u_west_fo,
+                                       east = u_east_fo,
                                        )
 
-v_boundaries = FieldBoundaryConditions(east = GradientBoundaryCondition(0),
-                                       west = GradientBoundaryCondition(0))
+v_boundaries = FieldBoundaryConditions(south = v_south_fo,
+                                       north = v_north_fo)
 
 
 boundary_conditions = (u = u_boundaries, v = v_boundaries)
