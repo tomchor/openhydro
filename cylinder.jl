@@ -154,7 +154,9 @@ v_boundaries = FieldBoundaryConditions(south = v_south_or,
 
 boundary_conditions = (u = u_boundaries, v = v_boundaries)
 
-run_cylinder(boundary_conditions, simname = nameof(typeof(u_boundaries.east.classification.matching_scheme)))
+matching_scheme_name(obc) = string(nameof(typeof(obc.classification.matching_scheme)))
+simname = matching_scheme_name(u_boundaries.east) *"_"* matching_scheme_name(v_boundaries.north) *"_"* matching_scheme_name(u_boundaries.west) *"_"* matching_scheme_name(v_boundaries.south)
+run_cylinder(boundary_conditions, simname = simname)
 
 
 #display(interior(model.velocities.u.boundary_conditions.east.classification.matching_scheme.c⁻¹, 1, 1:10 ,1))

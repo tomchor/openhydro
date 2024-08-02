@@ -55,7 +55,6 @@ const C = Center()
     cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.ϕ⁻¹[1, j, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * ϕ[i + 1, j, k]) / (1 + Cᵩ_norm)
     ϕₘₐₓ = @inbounds bc.classification.matching_scheme.ϕ⁻¹₋₁[1, j, k]
     @inbounds ϕ[i, j, k] = constrain_outflow(j, k, grid, bc, cᵢₙₜ, ϕₘₐₓ, Cᵩ_norm, clock, model_fields)
-
     return nothing
 end
 
@@ -65,6 +64,7 @@ end
     Cᵩ = (ϕ[i - 1, j, k] - bc.classification.matching_scheme.ϕ⁻²₋₁[1, j, k]) * (Cᵩ_max / 2) /
          (ϕ[i - 1, j, k] + bc.classification.matching_scheme.ϕ⁻²₋₁[1, j, k] - bc.classification.matching_scheme.ϕ⁻¹₋₂[1, j, k])
     Cᵩ_norm = Cᵩ / Cᵩ_max
+
     cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.ϕ⁻¹[1, j, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * ϕ[i - 1, j, k]) / (1 + Cᵩ_norm)
     ϕₘₐₓ = @inbounds bc.classification.matching_scheme.ϕ⁻¹₋₁[1, j, k]
     @inbounds ϕ[i, j, k] = constrain_outflow(j, k, grid, bc, cᵢₙₜ, ϕₘₐₓ, Cᵩ_norm, clock, model_fields)
@@ -81,7 +81,6 @@ end
     cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.ϕ⁻¹[i, 1, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * ϕ[i, j + 1, k]) / (1 + Cᵩ_norm)
     ϕₘₐₓ = @inbounds bc.classification.matching_scheme.ϕ⁻¹₋₁[i, 1, k]
     @inbounds ϕ[i, j, k] = constrain_outflow(i, k, grid, bc, cᵢₙₜ, ϕₘₐₓ, Cᵩ_norm, clock, model_fields)
-
     return nothing
 end
 
@@ -95,7 +94,6 @@ end
     cᵢₙₜ = @inbounds (1 - Cᵩ_norm) * bc.classification.matching_scheme.ϕ⁻¹[i, 1, k] / (1 + Cᵩ_norm) + (2 * Cᵩ_norm * ϕ[i, j - 1, k]) / (1 + Cᵩ_norm)
     ϕₘₐₓ = @inbounds bc.classification.matching_scheme.ϕ⁻¹₋₁[i, 1, k]
     @inbounds ϕ[i, j, k] = constrain_outflow(i, k, grid, bc, cᵢₙₜ, ϕₘₐₓ, Cᵩ_norm, clock, model_fields)
-
     return nothing
 end
 
@@ -143,9 +141,11 @@ function update_orlanski_matching_scheme!(sim)
 
         bcs.bottom isa OOBC && (interior(bcs.bottom.classification.matching_scheme.ϕ⁻²₋₁, :, :, 1) .= interior(bcs.bottom.classification.matching_scheme.ϕ⁻¹₋₂, :, :, 1);
                                 interior(bcs.bottom.classification.matching_scheme.ϕ⁻¹₋₂, :, :, 1) .= interior(field, :, :, 3);
-                                interior(bcs.bottom.classification.matching_scheme.ϕ⁻¹₋₁, :, :, 1) .= interior(field, :, :, 2))
+                                interior(bcs.bottom.classification.matching_scheme.ϕ⁻¹₋₁, :, :, 1) .= interior(field, :, :, 2);
+                                interior(bcs.bottom.classification.matching_scheme.ϕ⁻¹,   :, :, 1) .= interior(field, :, :, 1))
         bcs.top    isa OOBC && (interior(bcs.top.classification.matching_scheme.ϕ⁻²₋₁,    :, :, 1) .= interior(bcs.top.classification.matching_scheme.ϕ⁻¹₋₁, :, :, 1);
                                 interior(bcs.top.classification.matching_scheme.ϕ⁻¹₋₂,    :, :, 1) .= interior(field, :, :, k - 2);
-                                interior(bcs.top.classification.matching_scheme.ϕ⁻¹₋₁,    :, :, 1) .= interior(field, :, :, k - 1))
+                                interior(bcs.top.classification.matching_scheme.ϕ⁻¹₋₁,    :, :, 1) .= interior(field, :, :, k - 1);
+                                interior(bcs.top.classification.matching_scheme.ϕ⁻¹,      :, :, 1) .= interior(field, :, :, k))
     end
 end
