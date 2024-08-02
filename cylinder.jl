@@ -139,15 +139,17 @@ v_north_fo = FirstOrderRadiationOpenBoundaryCondition(v∞,  parameters = (; U, 
 u_west_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
 u_east_so = SecondOrderRadiationOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₂ = copy(u₋₁))
 
-u_west_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹ = copy(u₋₁),   c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₁ = copy(u₋₁))
-u_east_or = OrlanskiOpenBoundaryCondition(u∞,             parameters = (; U, T), relaxation_timescale=1; c⁻¹ = copy(u₋₁),   c⁻¹₋₁ = copy(u₋₁), c⁻¹₋₂ = copy(u₋₁), c⁻²₋₁ = copy(u₋₁))
+u_west_or  = OrlanskiOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; ϕ⁻¹ = copy(u₋₁), ϕ⁻¹₋₁ = copy(u₋₁), ϕ⁻¹₋₂ = copy(u₋₁), ϕ⁻²₋₁ = copy(u₋₁))
+u_east_or  = OrlanskiOpenBoundaryCondition(u∞, parameters = (; U, T), relaxation_timescale=1; ϕ⁻¹ = copy(u₋₁), ϕ⁻¹₋₁ = copy(u₋₁), ϕ⁻¹₋₂ = copy(u₋₁), ϕ⁻²₋₁ = copy(u₋₁))
+v_south_or = OrlanskiOpenBoundaryCondition(v∞, parameters = (; U, T), relaxation_timescale=1; ϕ⁻¹ = copy(v₋₁), ϕ⁻¹₋₁ = copy(v₋₁), ϕ⁻¹₋₂ = copy(v₋₁), ϕ⁻²₋₁ = copy(v₋₁))
+v_north_or = OrlanskiOpenBoundaryCondition(v∞, parameters = (; U, T), relaxation_timescale=1; ϕ⁻¹ = copy(v₋₁), ϕ⁻¹₋₁ = copy(v₋₁), ϕ⁻¹₋₂ = copy(v₋₁), ϕ⁻²₋₁ = copy(v₋₁))
 
-u_boundaries = FieldBoundaryConditions(west = u_west_fo,
-                                       east = u_east_fo,
+u_boundaries = FieldBoundaryConditions(west = u_west_or,
+                                       east = u_east_or,
                                        )
 
-v_boundaries = FieldBoundaryConditions(south = v_south_fo,
-                                       north = v_north_fo)
+v_boundaries = FieldBoundaryConditions(south = v_south_or,
+                                       north = v_north_or)
 
 
 boundary_conditions = (u = u_boundaries, v = v_boundaries)
